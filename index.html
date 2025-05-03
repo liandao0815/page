@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>璠璠的旅行去哪儿小扭蛋！</title>
-    <script src="https://cdn.bootcdn.net/ajax/libs/axios/1.9.0/axios.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
     <style>
       * {
@@ -100,27 +99,27 @@
           return Promise.resolve(chineseMapData)
         }
 
-        return axios.get('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json').then(res => {
-          const data = res.data
-          let _provinces = []
-          data.features.forEach(item => {
-            const name = item.properties.name
-            const adcode = item.properties.adcode
+        return fetch('./data/full.json')
+          .then(res => res.json())
+          .then(data => {
+            let _provinces = []
+            data.features.forEach(item => {
+              const name = item.properties.name
+              const adcode = item.properties.adcode
 
-            if (name) {
-              _provinces.push({ name, adcode })
-            }
+              if (name) {
+                _provinces.push({ name, adcode })
+              }
+            })
+
+            chineseMapData = data
+            provinces = _provinces
+            return data
           })
-
-          chineseMapData = data
-          provinces = _provinces
-
-          return data
-        })
       }
 
       function getCityMapData(adcode) {
-        return axios.get(`https://geo.datav.aliyun.com/areas_v3/bound/${adcode}_full.json`).then(res => {
+        return fetch.get(`./data/${adcode}.json`).then(res => res.json()).then(res => {
           const data = res.data
           let _cities = []
 
@@ -146,6 +145,7 @@
           lineWidth: 3,
           fontSize: 16,
           color: '#EE964B',
+          textColor: '#EE964B',
           maskColor: '#232329'
         })
         const mapData = await getChineseMapData()
@@ -373,7 +373,7 @@
               highlightCity(cityRandom[index])
             },
             () => {
-              showResult(`恭喜你，选中了<em>${currentProvince.name}-${cities[cities.length - 1].name}</em>！` )
+              showResult(`恭喜你，选中了<em>${currentProvince.name}-${cities[cities.length - 1].name}</em>！`)
             }
           )
         }
