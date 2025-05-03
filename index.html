@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>璠璠的旅行去哪儿小扭蛋！</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/axios/1.9.0/axios.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: #232329;
+        color: #ffffff;
+      }
+
+      .container {
+        width: 100%;
+        height: 540px;
+        pointer-events: none;
+      }
+
+      .button,
+      .button:focus {
+        margin: 0 auto;
+        position: relative;
+        width: 50%;
+        background-color: #ee964b;
+        border-radius: 4em;
+        color: white;
+        font-size: 1rem;
+        font-weight: bold;
+        text-align: center;
+        text-decoration: none;
+        text-transform: uppercase;
+        transition-duration: 0.4s;
+        padding: 10px 20px;
+      }
+      .button:after {
+        content: '';
+        display: block;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        transition: all 0.5s;
+        box-shadow: 0 0 10px 40px white;
+        border-radius: 4em;
+      }
+      .button:active:after {
+        opacity: 1;
+        transition: 0s;
+        box-shadow: 0 0 0 0 white;
+      }
+      .button:active {
+        top: 1px;
+      }
+
+      .process {
+        padding: 16px;
+        line-height: 1.5;
+        font-size: 16px;
+      }
+
+      .result {
+        text-align: center;
+        font-size: 18px;
+        margin-bottom: 30px;
+      }
+
+      .result em,
+      .process em {
+        font-style: normal;
+        font-weight: bold;
+        color: #ee964b;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container" class="container"></div>
+    <div id="process" class="process"></div>
+    <div id="result" class="result"></div>
+    <div id="button" class="button">开始~</div>
+
+    <script>
+      const chart = echarts.init(document.getElementById('container'))
+
+      let provinces = []
+      let cities = []
+      let currentProvince = null
+      let chineseMapData = null
+
+      function getChineseMapData() {
+        if (chineseMapData) {
+          return Promise.resolve(chineseMapData)
+        }
+
+        return axios.get('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json').then(res => {
+          const data = res.data
+          let _provinces = []
+          data.features.forEach(item => {
+            const name = item.properties.name
+            const adcode = item.properties.adcode
+
+            if (name) {
+              _provinces.push({ name, adcode })
+            }
+          })
+
+          chineseMapData = data
+          provinces = _provinces
+
+          return data
+        })
+      }
+
+      function getCityMapData(adcode) {
+        return axios.get(`https://geo.datav.aliyun.com/areas_v3/bound/${adcode}_full.json`).then(res => {
+          const data = res.data
+          let _cities = []
+
+          data.features.forEach(item => {
+            const name = item.properties.name
+            const adcode = item.properties.adcode
+
+            if (name) {
+              _cities.push({ name, adcode })
+            }
+          })
+
+          cities = _cities
+
+          return data
+        })
+      }
+
+      async function drawCountryMap() {
+        chart.showLoading({
+          text: '正在加载中国地图数据...',
+          spinnerRadius: 20,
+          lineWidth: 3,
+          fontSize: 16,
+          color: '#EE964B',
+          maskColor: '#232329'
+        })
+        const mapData = await getChineseMapData()
+        chart.hideLoading()
+        echarts.registerMap('China', mapData)
+        chart.setOption({
+          title: {
+            text: '璠璠的旅行去哪儿小扭蛋！',
+            subtext: '',
+            left: 'center',
+            top: '5%',
+            textStyle: {
+              fontSize: 18,
+              color: '#EE964B'
+            }
+          },
+          series: [
+            {
+              name: '中国地图',
+              type: 'map',
+              map: 'China',
+              emphasis: {
+                itemStyle: {
+                  areaColor: '#EE964B'
+                }
+              }
+            }
+          ]
+        })
+      }
+
+      function drawProvinceMap(mapData) {
+        echarts.registerMap(currentProvince.name, mapData)
+        chart.setOption({
+          series: [
+            {
+              name: currentProvince.name,
+              type: 'map',
+              map: currentProvince.name,
+              emphasis: {
+                itemStyle: {
+                  areaColor: '#EE964B'
+                }
+              }
+            }
+          ]
+        })
+      }
+
+      function generateNonRepeatingRandoms(count, maxExclusive) {
+        const result = []
+        let prev = null
+
+        for (let i = 0; i < count; i++) {
+          let num
+          do {
+            num = Math.floor(Math.random() * maxExclusive)
+          } while (num === prev)
+          num = Math.floor(Math.random() * maxExclusive)
+
+          result.push(num)
+          prev = num
+        }
+
+        return result
+      }
+
+      function generateDelays(duration, frames) {
+        const delays = []
+        for (let i = 0; i <= frames; i++) {
+          const t = i / frames
+          const eased = Math.sin(t * Math.PI)
+          delays.push(eased)
+        }
+
+        const intervals = []
+        for (let i = 1; i < delays.length; i++) {
+          const dt = (delays[i] - delays[i - 1]) * duration
+          intervals.push(Math.abs(dt))
+        }
+
+        return intervals
+      }
+
+      function startVariableSpeedAnimation(delays, action, callback) {
+        let i = 0
+        function next() {
+          if (i >= delays.length) {
+            if (callback) {
+              callback()
+            }
+            return
+          }
+          action(i)
+          setTimeout(next, delays[i])
+          i++
+        }
+
+        next()
+      }
+
+      function highlightProvince(index) {
+        const destination = provinces[index]
+
+        chart.dispatchAction({
+          type: 'downplay',
+          name: provinces.map(item => item.name)
+        })
+        chart.dispatchAction({
+          type: 'highlight',
+          name: destination.name
+        })
+      }
+
+      function highlightCity(index) {
+        const destination = cities[index]
+
+        chart.dispatchAction({
+          type: 'downplay',
+          name: cities.map(item => item.name)
+        })
+        chart.dispatchAction({
+          type: 'highlight',
+          name: destination.name
+        })
+      }
+
+      function showProcess(text, clear) {
+        const $result = document.getElementById('result')
+        const $button = document.getElementById('button')
+        const $process = document.getElementById('process')
+
+        clear && ($process.innerHTML = '')
+
+        $button.style.display = 'none'
+        $result.style.display = 'none'
+        $process.style.display = 'block'
+
+        const item = document.createElement('div')
+        item.innerHTML = text
+        item.className = 'process-item'
+        $process.appendChild(item)
+      }
+
+      function showResult(text) {
+        const $result = document.getElementById('result')
+        const $button = document.getElementById('button')
+        const $process = document.getElementById('process')
+
+        $button.style.display = 'block'
+        $result.style.display = 'block'
+        $process.style.display = 'none'
+
+        $result.innerHTML = text
+        $button.innerHTML = '再来一次~'
+      }
+
+      function startCountdown(countdown, startText) {
+        const numberMap = {
+          1: '一',
+          2: '二',
+          3: '三'
+        }
+
+        return new Promise(resolve => {
+          const countdownInterval = setInterval(() => {
+            if (countdown > 0) {
+              showProcess(numberMap[countdown] + '!')
+              countdown--
+            } else {
+              clearInterval(countdownInterval)
+              showProcess(startText)
+              setTimeout(() => {
+                resolve()
+              }, 1000)
+            }
+          }, 1000)
+        })
+      }
+
+      async function start() {
+        // 初始化数据
+        drawCountryMap()
+        showProcess('准备好，要开始啦！', true)
+
+        // 倒计时
+        await startCountdown(3, '小扭蛋开始转咯~呼~')
+        // 生成动画帧数
+        const delays = generateDelays(5000, 60)
+        // 生成随机数组
+        const randoms = generateNonRepeatingRandoms(delays.length, provinces.length)
+
+        // 选择回调
+        const callback = async () => {
+          // 选择省份结束
+          const target = provinces[randoms[randoms.length - 1]]
+          currentProvince = target
+
+          // 台湾省展示无法获取地区
+          if (target.adcode === 710000) {
+            showResult('恭喜你，选中了<em>台湾省</em>！')
+            return
+          }
+
+          showProcess(`选中了<em>${target.name}</em>！准备前往${target.name}的随机城市/地区~`)
+
+          const [mapData] = await Promise.all([
+            getCityMapData(currentProvince.adcode),
+            new Promise(resolve => setTimeout(resolve, 1000))
+          ])
+
+          // 绘制省份地图
+          drawProvinceMap(mapData)
+
+          await startCountdown(3, `开始选择${currentProvince.name}的城市/地区咯~呼~`)
+          // 生成动画帧数
+          const cityDelays = generateDelays(5000, 60)
+          // 生成随机数组
+          const cityRandom = generateNonRepeatingRandoms(cityDelays.length, cities.length)
+
+          // 开始转动
+          startVariableSpeedAnimation(
+            cityDelays,
+            index => {
+              highlightCity(cityRandom[index])
+            },
+            () => {
+              showResult(`恭喜你，选中了<em>${currentProvince.name}-${cities[cities.length - 1].name}</em>！` )
+            }
+          )
+        }
+
+        // 开始转动
+        startVariableSpeedAnimation(
+          delays,
+          index => {
+            highlightProvince(randoms[index])
+          },
+          callback
+        )
+      }
+
+      function init() {
+        // 绘制中国地图
+        drawCountryMap()
+
+        // 添加事件监听
+        const $button = document.getElementById('button')
+        $button.addEventListener('click', start)
+      }
+
+      init()
+    </script>
+  </body>
+</html>
