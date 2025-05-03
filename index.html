@@ -370,16 +370,16 @@
           // 生成动画帧数
           const cityDelays = generateDelays(5000, 60)
           // 生成随机数组
-          const cityRandom = generateNonRepeatingRandoms(cityDelays.length, cities.length)
+          const cityRandoms = generateNonRepeatingRandoms(cityDelays.length, cities.length)
 
           // 开始转动
           startVariableSpeedAnimation(
             cityDelays,
             index => {
-              highlightCity(cityRandom[index])
+              highlightCity(cityRandoms[index])
             },
             () => {
-              showResult(`恭喜你，选中了<em>${currentProvince.name}-${cities[cities.length - 1].name}</em>！`)
+              showResult(`恭喜你，选中了<em>${currentProvince.name}-${cities[cityRandoms[cityRandoms.length - 1]].name}</em>！`)
             }
           )
         }
