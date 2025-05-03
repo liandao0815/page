@@ -61,12 +61,16 @@
       }
 
       .process {
+        display: none;
         padding: 16px;
         line-height: 1.5;
         font-size: 16px;
+        height: calc(100vh - 540px - 60px);
+        overflow: auto;
       }
 
       .result {
+        display: none;
         text-align: center;
         font-size: 18px;
         margin-bottom: 30px;
@@ -119,23 +123,24 @@
       }
 
       function getCityMapData(adcode) {
-        return fetch.get(`./data/${adcode}.json`).then(res => res.json()).then(res => {
-          const data = res.data
-          let _cities = []
+        return fetch(`./data/${adcode}.json`)
+          .then(res => res.json())
+          .then(data => {
+            let _cities = []
 
-          data.features.forEach(item => {
-            const name = item.properties.name
-            const adcode = item.properties.adcode
+            data.features.forEach(item => {
+              const name = item.properties.name
+              const adcode = item.properties.adcode
 
-            if (name) {
-              _cities.push({ name, adcode })
-            }
+              if (name) {
+                _cities.push({ name, adcode })
+              }
+            })
+
+            cities = _cities
+
+            return data
           })
-
-          cities = _cities
-
-          return data
-        })
       }
 
       async function drawCountryMap() {
@@ -288,6 +293,7 @@
         item.innerHTML = text
         item.className = 'process-item'
         $process.appendChild(item)
+        $process.scrollTop = 1000
       }
 
       function showResult(text) {
